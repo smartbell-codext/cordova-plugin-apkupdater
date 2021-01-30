@@ -4,13 +4,18 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
+import android.util.Log;
+
 import androidx.core.content.FileProvider;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.Observable;
 
 import de.kolbasa.apkupdater.downloader.FileTools;
+import de.kolbasa.apkupdater.downloader.exceptions.InstallationFailedException;
 
 class ApkInstaller extends Observable {
 
@@ -18,7 +23,7 @@ class ApkInstaller extends Observable {
         COPYING("Copying update to cache"),
         INSTALLING("Installing update");
 
-        private String readableString;
+        private final String readableString;
 
         @Override
         public String getMessage() {
@@ -55,6 +60,35 @@ class ApkInstaller extends Observable {
             }
         }
         context.startActivity(intent);
+    }
+
+    void rootInstall(File update) throws InstallationFailedException, IOException, InterruptedException {
+        String appId = BuildConfig.APPLICATION_ID;
+
+        // -r Reinstall if needed
+        // -d Downgrade if needed
+        String command = "pm install -r -d " + update.getAbsolutePath() +
+                " && am start -n " + appId + "/" + appId + ".MainActivity";
+
+        setChanged();
+        notifyObservers(InstallEvent.INSTALLING);
+
+        Process process = Runtime.getRuntime().exec(new String[]{"su", "-c", command});
+        BufferedReader stdError = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+
+        StringBuilder builder = new StringBuilder();
+        String s;
+        while ((s = stdError.readLine()) != null) {
+            builder.append(s);
+        }
+
+        process.waitFor();
+        process.destroy();
+        stdError.close();
+
+        if (builder.length() > 0) {
+            throw new InstallationFailedException(builder.toString());
+        }
     }
 
 }

@@ -146,7 +146,7 @@ public class ApkUpdater extends CordovaPlugin {
         exception.printStackTrace(new PrintWriter(sw));
         String stack = sw.toString();
 
-        CordovaError cordovaError = CordovaError.UNKNOWN_EXCEPTION;
+        CordovaError cordovaError = null;
         if (exception instanceof IOException) {
             cordovaError = CordovaError.DOWNLOAD_FAILED;
         } else if (exception instanceof ParseException) {
@@ -158,12 +158,21 @@ public class ApkUpdater extends CordovaPlugin {
         } else if (exception instanceof AlreadyRunningException) {
             cordovaError = CordovaError.DOWNLOAD_ALREADY_RUNNING;
         } else {
-            exception.printStackTrace();
+           exception.printStackTrace();
         }
 
-        broadcastException(cordovaError.getMessage(), stack);
+        String callbackMessage;
+
+        if (cordovaError == null) {
+            callbackMessage = stack;
+            broadcastException(exception.getMessage(), stack);
+        } else {
+            callbackMessage = cordovaError.getMessage();
+            broadcastException(cordovaError.getMessage(), stack);
+        }
+
         if (callbackContext != null) {
-            callbackContext.error(cordovaError.getMessage());
+            callbackContext.error(callbackMessage);
         }
     }
 
@@ -387,6 +396,33 @@ public class ApkUpdater extends CordovaPlugin {
         }
     }
 
+    private void rootInstall(CallbackContext callbackContext) {
+        try {
+            if (notInitialized(callbackContext)) {
+                return;
+            }
+
+            File update = manifest.getUpdateFile();
+
+            if (update == null) {
+                callbackContext.error(CordovaError.UPDATE_NOT_READY.getMessage());
+                return;
+            }
+
+            ApkInstaller installer = new ApkInstaller();
+            installer.addObserver((o, arg) -> {
+                if (arg instanceof ApkInstaller.InstallEvent) {
+                    broadcastEvent((ApkInstaller.InstallEvent) arg);
+                }
+            });
+            installer.rootInstall(update);
+
+            callbackContext.success();
+        } catch (Exception e) {
+            handleException(e, callbackContext);
+        }
+    }
+
     @Override
     public boolean execute(String action, JSONArray data, CallbackContext callbackContext) {
         Log.v(TAG, "Executing (" + action + ")");
@@ -409,6 +445,9 @@ public class ApkUpdater extends CordovaPlugin {
                 break;
             case "install":
                 cordova.getThreadPool().execute(() -> install(callbackContext));
+                break;
+            case "rootInstall":
+                cordova.getThreadPool().execute(() -> rootInstall(callbackContext));
                 break;
             default:
                 return false;
