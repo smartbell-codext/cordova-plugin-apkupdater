@@ -88,6 +88,20 @@ module.exports = {
      *
      * @returns {Promise<void>|void}
      */
+    rootInstall: function (success, failure) {
+        if (success == null && failure == null) {
+            return API.rootInstall();
+        } else {
+            API.rootInstall().then(success).catch(failure);
+        }
+    },
+
+    /**
+     * @param {function=} success
+     * @param {function=} failure
+     *
+     * @returns {Promise<void>|void}
+     */
     reset: function (success, failure) {
         if (success == null && failure == null) {
             return API.reset();

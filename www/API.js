@@ -36,6 +36,12 @@ module.exports = {
         });
     },
 
+    rootInstall: function () {
+        return new Promise(function (resolve, reject) {
+            exec(resolve, reject, MODULE_NAME, 'rootInstall', []);
+        });
+    },
+
     reset: function () {
         return new Promise(function (resolve, reject) {
             exec(resolve, reject, MODULE_NAME, 'reset', []);
@@ -70,5 +76,5 @@ module.exports = {
         }
     }
 
-}
+};
 
