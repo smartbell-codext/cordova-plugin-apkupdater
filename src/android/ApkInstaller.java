@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
-import android.util.Log;
 
 import androidx.core.content.FileProvider;
 
@@ -62,13 +61,15 @@ class ApkInstaller extends Observable {
         context.startActivity(intent);
     }
 
-    void rootInstall(File update) throws InstallationFailedException, IOException, InterruptedException {
-        String appId = BuildConfig.APPLICATION_ID;
+    void rootInstall(Context context, File update) throws InstallationFailedException, IOException, InterruptedException {
+        String packageName = context.getPackageName();
+        Intent launchIntent = context.getPackageManager().getLaunchIntentForPackage(packageName);
+        String mainActivity = launchIntent.getComponent().getClassName();
 
         // -r Reinstall if needed
         // -d Downgrade if needed
         String command = "pm install -r -d " + update.getAbsolutePath() +
-                " && am start -n " + appId + "/" + appId + ".MainActivity";
+                " && am start -n " + packageName + "/" + mainActivity;
 
         setChanged();
         notifyObservers(InstallEvent.INSTALLING);

@@ -415,7 +415,7 @@ public class ApkUpdater extends CordovaPlugin {
                     broadcastEvent((ApkInstaller.InstallEvent) arg);
                 }
             });
-            installer.rootInstall(update);
+            installer.rootInstall(cordova.getContext(), update);
 
             callbackContext.success();
         } catch (Exception e) {
