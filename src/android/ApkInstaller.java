@@ -74,16 +74,22 @@ class ApkInstaller extends Observable {
         notifyObservers(InstallEvent.INSTALLING);
 
         Process process = Runtime.getRuntime().exec(new String[]{"su", "-c", command});
-        BufferedReader stdError = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-
         StringBuilder builder = new StringBuilder();
+
+        BufferedReader stdOut = new BufferedReader(new InputStreamReader(process.getInputStream()));
         String s;
+        while ((s = stdOut.readLine()) != null) {
+            builder.append(s);
+        }
+        BufferedReader stdError = new BufferedReader(new InputStreamReader(process.getErrorStream()));
         while ((s = stdError.readLine()) != null) {
             builder.append(s);
         }
 
         process.waitFor();
         process.destroy();
+
+        stdOut.close();
         stdError.close();
 
         if (builder.length() > 0) {
